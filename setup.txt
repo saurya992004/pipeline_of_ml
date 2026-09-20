@@ -1,300 +1,858 @@
+# AIOps Setup & Run Guide — Kafka + Airflow
+
+This guide is organized by **where you are running the project**.
+
+## Quick decision table
+
+| Environment | Kafka | Airflow | Commands |
+|---|---|---|---|
+| GitHub Codespaces | Linux / `.sh` | Linux / `.sh` | Use Codespaces section |
+| Windows + VS Code | PowerShell / `.bat` | WSL / Ubuntu | Use Desktop section |
+| WSL / Ubuntu | `.sh` | `.sh` | Use WSL sections |
+
+---
+
+# PART 0 — BASIC CHECKS
+
+Run these first in the environment you are actually using.
+
+```bash
 python3 --version
 pip3 --version
 java -version
 git --version
-If Python is missing
+```
+
+## If Python is missing — Linux / Codespaces / WSL
+
+```bash
 sudo apt update
 sudo apt install -y python3 python3-pip python3-venv
+```
 
-Check:
+Check again:
 
+```bash
 python3 --version
 pip3 --version
-If Java is missing
+```
+
+## If Java is missing — Linux / Codespaces / WSL
+
+```bash
 sudo apt update
 sudo apt install -y openjdk-17-jdk
+```
 
 Check:
 
+```bash
 java -version
-B. Kafka
-Install
+```
+
+---
+
+# PART 1 — GITHUB CODESPACES
+
+Codespaces uses Linux commands.
+
+## A. Kafka in Codespaces
+
+### A1. Install Kafka — ONE TIME ONLY
+
+```bash
 cd ~
+
 wget https://downloads.apache.org/kafka/4.0.1/kafka_2.13-4.0.1.tgz
+
 tar -xzf kafka_2.13-4.0.1.tgz
+
 mv kafka_2.13-4.0.1 kafka
+
 cd ~/kafka
-
-----------------------------------------------------------
-
-
-1. GitHub Codespaces — Kafka + Airflow from scratch
-Kafka
-java -version
-
-If Java missing:
-
-sudo apt update
-sudo apt install -y openjdk-17-jdk
-
-Install Kafka:
-
-cd ~
-wget https://downloads.apache.org/kafka/4.0.1/kafka_2.13-4.0.1.tgz
-tar -xzf kafka_2.13-4.0.1.tgz
-mv kafka_2.13-4.0.1 kafka
-cd ~/kafka
+```
 
 Check:
 
+```bash
 bin/kafka-topics.sh --version
+```
 
-Start Kafka — Terminal 1:
+You only need to download/extract Kafka once.
 
+---
+
+## A2. Initialize Kafka storage — FIRST INSTALLATION ONLY
+
+Do NOT repeat the `format` command every time you start Kafka.
+
+Open **Terminal 1**:
+
+```bash
 cd ~/kafka
+
 export KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
+
 KAFKA_CLUSTER_ID=$(bin/kafka-storage.sh random-uuid)
+
 echo $KAFKA_CLUSTER_ID
+```
 
-Fresh installation only:
+Now format the fresh installation:
 
-bin/kafka-storage.sh format -t "$KAFKA_CLUSTER_ID" -c config/server.properties --standalone
+```bash
+bin/kafka-storage.sh format   -t "$KAFKA_CLUSTER_ID"   -c config/server.properties   --standalone
+```
+
+After this succeeds, the storage is initialized.
+
+---
+
+## A3. Start Kafka — EVERY TIME YOU NEED KAFKA
+
+**Terminal 1:**
+
+```bash
+cd ~/kafka
+
+export KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
+
 bin/kafka-server-start.sh config/server.properties
-Topic — Terminal 2
-cd ~/kafka
-bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic server_metrics --partitions 1 --replication-factor 1
-bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
-Console Producer
-bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic server_metrics
-Console Consumer — Terminal 3
-cd ~/kafka
-bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic server_metrics --from-beginning
-Codespaces — Python Kafka Producer/Consumer
-
-Install:
-
-pip install kafka-python
-
-Run producer:
-
-python q2/producer.py
-
-Run consumer:
-
-python q3/consumer.py
-
-If using one project:
-
-q2/producer.py
-q3/consumer.py
-2. GitHub Codespaces — Airflow from scratch
-Create environment
-cd /workspaces/YOUR-REPO
-python3 -m venv airflow-venv
-source airflow-venv/bin/activate
-
-Install:
-
-pip install --upgrade pip
-pip install apache-airflow
-
-Check:
-
-airflow version
-
-Initialize/start:
-
-airflow standalone
+```
 
 Keep this terminal running.
 
-New terminal
+Do NOT close it while your producer/consumer programs are running.
+
+---
+
+## A4. Create the Kafka topic — ONCE PER NEW TOPIC
+
+Open **Terminal 2**:
+
+```bash
+cd ~/kafka
+
+bin/kafka-topics.sh   --bootstrap-server localhost:9092   --create   --topic server_metrics   --partitions 1   --replication-factor 1
+```
+
+Check that it exists:
+
+```bash
+bin/kafka-topics.sh   --bootstrap-server localhost:9092   --list
+```
+
+You should see:
+
+```text
+server_metrics
+```
+
+### If the topic already exists
+
+Do NOT create it again. Just run:
+
+```bash
+bin/kafka-topics.sh   --bootstrap-server localhost:9092   --list
+```
+
+---
+
+## A5. Optional: Console Producer/Consumer
+
+These are only for **manual testing**. You do NOT need them when using Python producer/consumer files.
+
+### Console Producer — Terminal 2
+
+```bash
+cd ~/kafka
+
+bin/kafka-console-producer.sh   --bootstrap-server localhost:9092   --topic server_metrics
+```
+
+Type messages such as:
+
+```text
+CPU=50
+RAM=60
+```
+
+### Console Consumer — Terminal 3
+
+```bash
+cd ~/kafka
+
+bin/kafka-console-consumer.sh   --bootstrap-server localhost:9092   --topic server_metrics   --from-beginning
+```
+
+You should see the messages from the producer.
+
+---
+
+## A6. Python Kafka Producer/Consumer — NORMAL PROJECT WORKFLOW
+
+Install the Python library:
+
+```bash
+pip install kafka-python
+```
+
+Usually install this once in your Python environment.
+
+### Start Kafka first
+
+**Terminal 1:**
+
+```bash
+cd ~/kafka
+bin/kafka-server-start.sh config/server.properties
+```
+
+### Then run Python producer
+
+**Terminal 2:**
+
+```bash
+python q2/producer.py
+```
+
+### Then run Python consumer
+
+**Terminal 3:**
+
+```bash
+python q3/consumer.py
+```
+
+Normal flow:
+
+```text
+Kafka Broker
+     ↓
+server_metrics topic
+     ↓
+Python Producer → Kafka → Python Consumer
+```
+
+You do NOT need the console producer/consumer when the Python files are being used.
+
+---
+
+# PART 2 — AIRFLOW IN GITHUB CODESPACES
+
+Airflow should use its own Python virtual environment.
+
+## B1. Create the environment — ONE TIME
+
+Replace `YOUR-REPO` with your repository name.
+
+```bash
 cd /workspaces/YOUR-REPO
-source airflow-venv/bin/activate
 
-Find DAG folder:
-
-airflow config get-value core dags_folder
-
-Check DAGs:
-
-airflow dags list
-
-Check errors:
-
-airflow dags list-import-errors
-
-Test DAG:
-
-python -m py_compile dags/aiops_workflow.py
-
-Test task:
-
-airflow tasks test aiops_workflow collect_metrics 2026-09-20
-
-Trigger:
-
-airflow dags trigger aiops_workflow
-
-Airflow UI:
-
-Codespaces → PORTS → 8080 → Open in Browser
-3. Desktop VS Code + Windows PowerShell — Kafka
-
-Use PowerShell for Kafka.
-
-Install Java
-java -version
-
-If missing, install JDK 17/21.
-
-Download Kafka
-cd C:\
-
-Download/extract Kafka, then:
-
-cd C:\kafka
-
-Check:
-
-.\bin\windows\kafka-topics.bat --version
-
-Set memory:
-
-$env:KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
-Start Kafka — PowerShell 1
-cd C:\kafka
-
-Generate ID:
-
-.\bin\windows\kafka-storage.bat random-uuid
-
-Copy the ID, then fresh installation only:
-
-.\bin\windows\kafka-storage.bat format -t YOUR_CLUSTER_ID -c .\config\server.properties --standalone
-
-Start:
-
-.\bin\windows\kafka-server-start.bat .\config\server.properties
-PowerShell — Topic
-
-PowerShell 2:
-
-cd C:\kafka
-.\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --create --topic server_metrics --partitions 1 --replication-factor 1
-.\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --list
-PowerShell — Console Producer
-.\bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092 --topic server_metrics
-PowerShell — Console Consumer
-
-PowerShell 3:
-
-cd C:\kafka
-.\bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic server_metrics --from-beginning
-4. Desktop VS Code + WSL/Ubuntu — Airflow
-
-Use WSL Ubuntu terminal for Airflow.
-
-Open VS Code → connect to WSL.
-
-Check:
-
-python3 --version
-
-Create venv:
-
-cd ~/YOUR-PROJECT
 python3 -m venv airflow-venv
+
 source airflow-venv/bin/activate
+```
 
-Install:
+You should see:
 
+```text
+(airflow-venv)
+```
+
+at the beginning of the terminal prompt.
+
+---
+
+## B2. Install Airflow
+
+With the virtual environment activated:
+
+```bash
 pip install --upgrade pip
 pip install apache-airflow
+```
 
 Check:
 
+```bash
 airflow version
+```
 
-Start:
+---
 
+## B3. Start Airflow
+
+```bash
 airflow standalone
+```
 
-Keep terminal running.
+Keep this terminal running.
 
-New VS Code WSL terminal:
+---
 
-source ~/YOUR-PROJECT/airflow-venv/bin/activate
+## B4. Open a NEW terminal
 
-Check DAG:
+In the new terminal:
 
+```bash
+cd /workspaces/YOUR-REPO
+source airflow-venv/bin/activate
+```
+
+Every new terminal that you use for Airflow must activate the environment.
+
+---
+
+## B5. Find the DAG folder
+
+```bash
+airflow config get-value core dags_folder
+```
+
+---
+
+## B6. Check DAGs
+
+```bash
 airflow dags list
+```
 
-Check errors:
+Check import errors:
 
+```bash
 airflow dags list-import-errors
+```
 
-Test:
+---
 
+## B7. Check Python syntax
+
+For this DAG:
+
+```bash
 python -m py_compile dags/aiops_workflow.py
+```
 
-Run task:
+No output normally means the syntax check passed.
 
+---
+
+## B8. Test a task
+
+Example:
+
+```bash
 airflow tasks test aiops_workflow collect_metrics 2026-09-20
+```
 
-Trigger:
+Use the required execution date for your assignment.
 
+---
+
+## B9. Trigger the DAG
+
+```bash
 airflow dags trigger aiops_workflow
+```
 
-UI:
+---
 
-http://localhost:8080
-5. Python Kafka — Windows PowerShell system
+## B10. Open Airflow UI
 
-Install Python library:
+In Codespaces:
 
-pip install kafka-python
+```text
+PORTS → port 8080 → Open in Browser
+```
 
-Run producer:
+---
 
-python q2\producer.py
+# PART 3 — WINDOWS DESKTOP + VS CODE
 
-Run consumer:
+## Important
 
-python q3\consumer.py
+Use:
 
-Kafka server remains running in another PowerShell:
+- **PowerShell → Kafka**
+- **WSL/Ubuntu → Airflow**
 
-.\bin\windows\kafka-server-start.bat .\config\server.properties
-6. Python Kafka — Ubuntu/WSL
+Do not mix the Kafka `.bat` commands with Linux `.sh` commands.
+
+---
+
+# PART 4 — KAFKA ON WINDOWS POWERSHELL
+
+## C1. Check Java
+
+PowerShell:
+
+```powershell
+java -version
+```
+
+If Java is missing, install JDK 17 or 21.
+
+---
+
+## C2. Install Kafka — ONE TIME
+
+Download and extract Kafka, then place it at:
+
+```text
+C:\kafka
+```
+
+Open PowerShell:
+
+```powershell
+cd C:\kafka
+```
+
+Check:
+
+```powershell
+.in\windows\kafka-topics.bat --version
+```
+
+---
+
+## C3. Set Kafka memory
+
+```powershell
+$env:KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
+```
+
+---
+
+## C4. Initialize Kafka storage — FIRST INSTALLATION ONLY
+
+**PowerShell 1:**
+
+```powershell
+cd C:\kafka
+
+.in\windows\kafka-storage.bat random-uuid
+```
+
+Copy the generated ID.
+
+Then:
+
+```powershell
+.in\windows\kafka-storage.bat format -t YOUR_CLUSTER_ID -c .\config\server.properties --standalone
+```
+
+Replace `YOUR_CLUSTER_ID` with the ID you copied.
+
+Do NOT repeat the format command for an already initialized installation.
+
+---
+
+## C5. Start Kafka — EVERY TIME
+
+**PowerShell 1:**
+
+```powershell
+cd C:\kafka
+
+$env:KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
+
+.in\windows\kafka-server-start.bat .\config\server.properties
+```
+
+Keep this PowerShell window running.
+
+---
+
+## C6. Create/check topic
+
+**PowerShell 2:**
+
+```powershell
+cd C:\kafka
+
+.in\windows\kafka-topics.bat --bootstrap-server localhost:9092 --create --topic server_metrics --partitions 1 --replication-factor 1
+```
+
+Check:
+
+```powershell
+.in\windows\kafka-topics.bat --bootstrap-server localhost:9092 --list
+```
+
+If `server_metrics` already exists, don't create it again.
+
+---
+
+## C7. Optional console testing
+
+### Console Producer
+
+**PowerShell 2:**
+
+```powershell
+.in\windows\kafka-console-producer.bat --bootstrap-server localhost:9092 --topic server_metrics
+```
+
+### Console Consumer
+
+**PowerShell 3:**
+
+```powershell
+cd C:\kafka
+
+.in\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic server_metrics --from-beginning
+```
+
+These are optional testing tools.
+
+---
+
+# PART 5 — PYTHON KAFKA ON WINDOWS
 
 Install:
 
+```powershell
 pip install kafka-python
+```
 
-Kafka server — Terminal 1:
+Kafka must already be running in another PowerShell:
 
+```powershell
+.in\windows\kafka-server-start.bat .\config\server.properties
+```
+
+Then:
+
+### Producer
+
+```powershell
+python q2\producer.py
+```
+
+### Consumer
+
+Open another PowerShell:
+
+```powershell
+python q3\consumer.py
+```
+
+Normal workflow:
+
+```text
+PowerShell 1
+Kafka Broker
+    ↓
+PowerShell 2
+Python Producer
+    ↓
+server_metrics
+    ↓
+PowerShell 3
+Python Consumer
+```
+
+---
+
+# PART 6 — AIRFLOW ON WINDOWS USING WSL/UBUNTU
+
+Airflow should run inside WSL/Ubuntu.
+
+In VS Code:
+
+```text
+Connect to WSL
+```
+
+Then open the Ubuntu terminal.
+
+## D1. Check Python
+
+```bash
+python3 --version
+```
+
+---
+
+## D2. Create virtual environment — ONE TIME
+
+Replace `YOUR-PROJECT` with your project directory:
+
+```bash
+cd ~/YOUR-PROJECT
+
+python3 -m venv airflow-venv
+
+source airflow-venv/bin/activate
+```
+
+---
+
+## D3. Install Airflow
+
+```bash
+pip install --upgrade pip
+pip install apache-airflow
+```
+
+Check:
+
+```bash
+airflow version
+```
+
+---
+
+## D4. Start Airflow
+
+```bash
+airflow standalone
+```
+
+Keep this terminal running.
+
+---
+
+## D5. Open a NEW WSL terminal
+
+```bash
+source ~/YOUR-PROJECT/airflow-venv/bin/activate
+```
+
+---
+
+## D6. Check DAGs
+
+```bash
+airflow dags list
+```
+
+Check errors:
+
+```bash
+airflow dags list-import-errors
+```
+
+---
+
+## D7. Test DAG syntax
+
+```bash
+python -m py_compile dags/aiops_workflow.py
+```
+
+---
+
+## D8. Test task
+
+```bash
+airflow tasks test aiops_workflow collect_metrics 2026-09-20
+```
+
+---
+
+## D9. Trigger DAG
+
+```bash
+airflow dags trigger aiops_workflow
+```
+
+---
+
+## D10. Airflow UI
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# PART 7 — PYTHON KAFKA ON WSL/UBUNTU
+
+Install:
+
+```bash
+pip install kafka-python
+```
+
+Start Kafka:
+
+### Terminal 1
+
+```bash
+cd ~/kafka
+
+bin/kafka-server-start.sh config/server.properties
+```
+
+Keep it running.
+
+### Terminal 2 — Producer
+
+```bash
+python q2/producer.py
+```
+
+### Terminal 3 — Consumer
+
+```bash
+python q3/consumer.py
+```
+
+---
+
+# PART 8 — GITHUB SUBMISSION
+
+Use this after your work is complete.
+
+Check changes:
+
+```bash
+git status
+```
+
+Stage:
+
+```bash
+git add .
+```
+
+Commit:
+
+```bash
+git commit -m "Complete AIOps tasks"
+```
+
+Push:
+
+```bash
+git push
+```
+
+---
+
+# MOST IMPORTANT: WHAT TO RUN WHEN?
+
+## First-ever Kafka setup
+
+```text
+Install Java
+    ↓
+Download Kafka
+    ↓
+Extract Kafka
+    ↓
+Format Kafka storage
+    ↓
+Create topic
+```
+
+The storage `format` step is **NOT an every-run command**.
+
+---
+
+## Every time you want to use Kafka
+
+```text
+START KAFKA BROKER
+       ↓
+Make sure topic exists
+       ↓
+Run producer
+       ↓
+Run consumer
+```
+
+### Linux
+
+```bash
+# Terminal 1
 cd ~/kafka
 bin/kafka-server-start.sh config/server.properties
 
-Producer — Terminal 2:
-
+# Terminal 2
 python q2/producer.py
 
-Consumer — Terminal 3:
-
+# Terminal 3
 python q3/consumer.py
-7. GitHub submission — both Codespaces and Desktop
-git status
-git add .
-git commit -m "Complete AIOps tasks"
-git push
-Remember
-CODESPACES
-→ Linux commands (.sh)
-→ Kafka + Airflow can both run there
+```
 
-DESKTOP
-→ Kafka: Windows PowerShell (.bat)
-→ Airflow: WSL/Ubuntu (.sh)
-→ VS Code: editor connected to either environment
+### Windows
+
+```powershell
+# PowerShell 1
+cd C:\kafka
+.in\windows\kafka-server-start.bat .\config\server.properties
+
+# PowerShell 2
+python q2\producer.py
+
+# PowerShell 3
+python q3\consumer.py
+```
+
+---
+
+# Console vs Python
+
+Use **console producer/consumer only when you want to manually test Kafka**.
+
+For your actual Python project:
+
+```text
+❌ Console Producer
+❌ Console Consumer
+
+✅ Python Producer
+✅ Python Consumer
+```
+
+Kafka broker is still required:
+
+```text
+                 KAFKA BROKER
+                      │
+                server_metrics
+                 /                          ↓            ↓
+       Python Producer   Python Consumer
+```
+
+---
+
+# Final Environment Map
+
+```text
+┌─────────────────────────────┐
+│     GITHUB CODESPACES       │
+│                             │
+│ Kafka  → Linux .sh          │
+│ Airflow → Linux             │
+└─────────────────────────────┘
+
+
+┌─────────────────────────────┐
+│      WINDOWS DESKTOP        │
+│                             │
+│ Kafka → PowerShell .bat     │
+│                             │
+│ Airflow → WSL/Ubuntu .sh    │
+└─────────────────────────────┘
+```
+
+## Golden rules
+
+1. **Kafka broker must be running before producer/consumer.**
+2. **Format Kafka storage only on a fresh installation.**
+3. **Create a topic only if it doesn't already exist.**
+4. **Console producer/consumer are optional testing tools.**
+5. **Use Python producer/consumer for your actual application.**
+6. **Keep the Kafka terminal running while using Kafka.**
+7. **Airflow uses its own virtual environment.**
+8. **Activate the Airflow virtual environment in every new terminal.**
+9. **Codespaces uses Linux `.sh` commands.**
+10. **Windows Kafka uses PowerShell `.bat`; WSL Airflow uses Linux commands.**
+11. **Commit and push only after the work is complete.**
