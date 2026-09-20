@@ -1,0 +1,299 @@
+Git Commands — Exam Cheat Sheet
+1. Check Git
+git --version
+
+Check current repository:
+
+git status
+
+See current branch:
+
+git branch
+
+See remote:
+
+git remote -v
+2. First-time setup
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
+
+Check:
+
+git config --list
+3. Clone a repository
+git clone REPOSITORY_URL
+
+Then:
+
+cd REPOSITORY_NAME
+4. Pull latest changes
+
+Get latest changes and merge:
+
+git pull
+
+Specific branch:
+
+git pull origin main
+5. Check changes
+git status
+
+See exact changes:
+
+git diff
+
+See staged changes:
+
+git diff --cached
+6. Add files
+
+Add one file:
+
+git add filename.py
+
+Add multiple:
+
+git add file1.py file2.py
+
+Add everything:
+
+git add .
+7. Commit
+git commit -m "Add Kafka producer"
+
+Example:
+
+git commit -m "Implement AIOps workflow"
+
+Check commits:
+
+git log
+
+Short version:
+
+git log --oneline
+8. Push
+
+Push current branch:
+
+git push
+
+Explicit:
+
+git push origin main
+9. Complete basic workflow
+
+This is the most important sequence:
+
+git status
+git pull
+git status
+git add .
+git commit -m "Complete milestone"
+git push
+git status
+10. Branches
+
+See branches:
+
+git branch
+
+See all local + remote:
+
+git branch -a
+
+Create branch:
+
+git branch feature-kafka
+
+Switch branch:
+
+git switch feature-kafka
+
+Create + switch:
+
+git switch -c feature-kafka
+
+Older equivalent:
+
+git checkout -b feature-kafka
+11. Push a new branch
+git push -u origin feature-kafka
+
+After that:
+
+git push
+12. Switch back to main
+git switch main
+
+Update main:
+
+git pull origin main
+13. Merge a branch
+
+Suppose:
+
+main
+feature-kafka
+
+Switch to main:
+
+git switch main
+
+Get latest:
+
+git pull origin main
+
+Merge:
+
+git merge feature-kafka
+
+Push:
+
+git push origin main
+14. Delete branch
+
+Local:
+
+git branch -d feature-kafka
+
+Remote:
+
+git push origin --delete feature-kafka
+15. See remote branches
+git branch -r
+
+All branches:
+
+git branch -a
+16. Remote repository
+
+Check:
+
+git remote -v
+
+Add remote:
+
+git remote add origin REPOSITORY_URL
+
+Change remote:
+
+git remote set-url origin REPOSITORY_URL
+17. Undo common mistakes
+Unstage a file
+git restore --staged filename.py
+Discard changes to a file
+
+⚠️ Deletes your uncommitted changes:
+
+git restore filename.py
+Undo last commit but keep changes
+git reset --soft HEAD~1
+Undo last commit and changes
+
+⚠️ Destructive:
+
+git reset --hard HEAD~1
+
+Don't use this in the exam unless you know exactly why.
+
+18. If you forgot to add a file to your last commit
+git add .
+git commit --amend --no-edit
+
+Then push if it hasn't been pushed yet:
+
+git push
+19. See previous commits
+git log --oneline
+
+Example:
+
+a81d32f Add consumer
+c72ab11 Add producer
+93e4a21 Initial commit
+
+Show one commit:
+
+git show a81d32f
+20. Stash
+
+Temporarily save unfinished changes:
+
+git stash
+
+See stashes:
+
+git stash list
+
+Restore:
+
+git stash pop
+21. Fetch
+
+Download remote changes without merging:
+
+git fetch
+
+Specific remote:
+
+git fetch origin
+
+Then inspect:
+
+git branch -a
+22. GitHub exam workflow
+
+If you're given an existing Codespace/repository:
+
+git status
+git branch
+git pull
+
+Do your work.
+
+Then:
+
+git status
+git add .
+git commit -m "Complete Q2 Kafka task"
+git push
+
+For Q3:
+
+git add .
+git commit -m "Complete Q3 Kafka consumer"
+git push
+
+For Q4:
+
+git add .
+git commit -m "Add Airflow AIOps workflow"
+git push
+🔥 15 commands to memorize
+
+If you only have time to memorize a small set:
+
+git status
+git pull
+git add .
+git commit -m "message"
+git push
+git branch
+git branch -a
+git switch main
+git switch -c feature-name
+git push -u origin feature-name
+git merge feature-name
+git log --oneline
+git diff
+git remote -v
+git stash
+The one workflow to remember:
+PULL → WORK → STATUS → ADD → COMMIT → PUSH
+git pull
+git status
+# do your work
+git add .
+git commit -m "Complete milestone"
+git push

@@ -1,0 +1,938 @@
+Basic Python parser
+with open("logs.txt", "r") as file:
+    logs = file.readlines()
+
+errors = []
+
+for log in logs:
+    if "ERROR" in log:
+        errors.append(log.strip())
+
+print("Total errors:", len(errors))
+
+for error in errors:
+    print(error)
+18. ML anomaly detector
+
+A simple exam-friendly approach is Isolation Forest.
+
+Install:
+
+pip install pandas scikit-learn matplotlib
+
+Example:
+
+import pandas as pd
+from sklearn.ensemble import IsolationForest
+
+data = pd.DataFrame({
+    "cpu": [30, 32, 31, 35, 33, 34, 95, 32, 31],
+    "memory": [40, 42, 41, 43, 40, 42, 95, 41, 43]
+})
+
+model = IsolationForest(
+    contamination=0.1,
+    random_state=42
+)
+
+data["anomaly"] = model.fit_predict(
+    data[["cpu", "memory"]]
+)
+
+print(data)
+---------------------------------------------------------------------------------
+List topics:
+
+kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+Create topic:
+
+kafka-topics.sh \
+--bootstrap-server localhost:9092 \
+--create \
+--topic logs
+
+Producer:
+
+kafka-console-producer.sh \
+--bootstrap-server localhost:9092 \
+--topic logs
+
+Consumer:
+
+kafka-console-consumer.sh \
+--bootstrap-server localhost:9092 \
+--topic logs \
+--from-beginning
+
+---------------------------------------------------------------------------------
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+
+def collect_data():
+    print("Collecting data")
+
+def process_data():
+    print("Processing data")
+
+with DAG(
+    dag_id="ml_pipeline",
+    start_date=datetime(2026, 1, 1),
+    schedule="@daily",
+    catchup=False
+) as dag:
+
+    collect = PythonOperator(
+        task_id="collect",
+        python_callable=collect_data
+    )
+
+    process = PythonOperator(
+        task_id="process",
+        python_callable=process_data
+    )
+
+    collect >> process
+---------------------------------------------------------------------------------
+
+import pandas as pd
+import matplotlib.pyplot as plt
+data = {
+    "timestamp": [
+        "10:01", "10:02", "10:03", "10:04", "10:05",
+        "10:06", "10:07", "10:08", "10:09", "10:10",
+        "10:11", "10:12", "10:13", "10:14", "10:15",
+        "10:16", "10:17", "10:18", "10:19", "10:20"
+    ],
+
+    "cpu": [
+        45, 50, 52, 48, 95,
+        55, 51, 49, 53, 57,
+        54, 97, 50, 48, 52,
+        55, 51, 92, 49, 53
+    ],
+
+    "memory": [
+        60, 62, 61, 63, 70,
+        64, 62, 61, 63, 65,
+        64, 72, 62, 61, 63,
+        64, 62, 61, 71, 63
+    ],
+
+    "response_time": [
+        120, 125, 130, 118, 300,
+        125, 122, 119, 127, 130,
+        126, 350, 120, 118, 123,
+        125, 121, 320, 119, 124
+    ]
+}
+
+df = pd.DataFrame(data)
+
+
+print("Total records:", len(df))
+
+print("\nBasic Statistics:")
+print(df[["cpu", "memory", "response_time"]].describe())
+
+print("\nBasic Statistics:")
+print(df[["cpu", "memory", "response_time"]].describe())
+df["anomaly"] = (
+    (df["cpu"] > 80) |
+    (df["memory"] > 90) |
+    (df["response_time"] > 250)
+)
+
+anomalies = df[df["anomaly"]]
+
+print("\nAnomalous Records:")
+print(anomalies)
+
+print("\nAnomalies detected:", len(anomalies))
+
+print("\nAnomaly Details:")
+
+for _, row in anomalies.iterrows():
+    print(
+        f"{row['timestamp']} "
+        f"CPU: {row['cpu']}% "
+        f"Status: ANOMALY"
+    )
+
+
+# ----------------------
+
+plt.figure(figsize=(10, 5))
+
+plt.plot(
+    df["timestamp"],
+    df["cpu"],
+    marker="o",
+    label="CPU Usage"
+)
+
+plt.scatter(
+    anomalies["timestamp"],
+    anomalies["cpu"],
+    label="Anomaly"
+)
+
+plt.axhline(
+    y=80,
+    linestyle="--",
+    label="CPU Threshold"
+)
+
+plt.xlabel("Timestamp")
+plt.ylabel("CPU Usage (%)")
+plt.title("CPU Usage and Anomalies")
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+plt.show()
+----------------------------------------------------------------------
+Q2
+configure
+.\bin\windows\kafka-storage.bat random-uuid
+
+.\bin\windows\kafka-storage.bat format -t Og04efRIQaqY0r1qtDii0A -c .\config\server.properties --standalone
+
+.\bin\windows\kafka-server-start.bat .\config\server.properties
+
+
+TOPIC
+.\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --create --topic server_metrics --partitions 1 --replication-factor 1
+
+.\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --describe --topic server_metrics
+
+PRODUCER
+
+.\bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092 --topic server_metrics
+
+{"server_id":"server01","cpu_usage":82,"memory_usage":65}
+
+
+consumer
+.\bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic server_metrics --from-beginning
+		
+---------------------------------------------------------------------------
+producer.py
+from kafka import KafkaProducer
+import json
+
+producer = KafkaProducer(
+    bootstrap_servers="localhost:9092",
+    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+)
+
+messages = [
+    {"server_id": "server01", "cpu_usage": 82, "memory_usage": 65},
+    {"server_id": "server02", "cpu_usage": 45, "memory_usage": 55},
+    {"server_id": "server03", "cpu_usage": 91, "memory_usage": 70},
+    {"server_id": "server04", "cpu_usage": 62, "memory_usage": 60},
+    {"server_id": "server05", "cpu_usage": 88, "memory_usage": 72},
+    {"server_id": "server06", "cpu_usage": 41, "memory_usage": 50},
+    {"server_id": "server07", "cpu_usage": 75, "memory_usage": 68},
+    {"server_id": "server08", "cpu_usage": 93, "memory_usage": 80},
+    {"server_id": "server09", "cpu_usage": 55, "memory_usage": 58},
+    {"server_id": "server10", "cpu_usage": 85, "memory_usage": 74}
+]
+
+for message in messages:
+    producer.send("server_metrics", value=message)
+
+producer.flush()
+producer.close()
+
+print("10 messages published successfully.")
+-----------------------------------------------------------------------------
+CONSUMER.PYfrom kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    "server_metrics",
+    bootstrap_servers="localhost:9092",
+    auto_offset_reset="earliest",
+    value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+)
+
+print("Listening for server metrics...")
+
+for message in consumer:
+    data = message.value
+
+    server_id = data["server_id"]
+    cpu = data["cpu_usage"]
+    memory = data["memory_usage"]
+
+    print(
+        f"{server_id} | CPU: {cpu}% | Memory: {memory}%"
+    )
+
+    if cpu > 80:
+        print(f"ALERT: High CPU detected on {server_id}")
+--------------------------------------------------------------------------------
+Suppose you discovered:
+
+/opt/kafka
+
+Then:
+
+cd /opt/kafka
+
+Set memory:
+
+export KAFKA_HEAP_OPTS="-Xmx1G -Xms512M"
+
+Generate cluster ID:
+
+KAFKA_CLUSTER_ID=$(bin/kafka-storage.sh random-uuid)
+
+Check it:
+
+echo $KAFKA_CLUSTER_ID
+
+You'll get something like:
+
+Og04efRIQaqY0r1qtDii0A
+5. Format Kafka storage
+
+Only do this if the exam instructions say Kafka needs to be initialized.
+
+For a Kafka installation using config/server.properties:
+
+bin/kafka-storage.sh format \
+  -t "$KAFKA_CLUSTER_ID" \
+  -c config/server.properties \
+  --standalone
+
+Or, if the repo specifically tells you to use another config file, use that config file.
+
+Important
+
+Don't randomly run:
+
+kafka-storage.sh format
+
+on an already initialized exam environment.
+
+Formatting is an initialization step, not something you normally repeat every time you start Kafka.
+
+6. Start Kafka
+
+Still in the Kafka directory:
+
+bin/kafka-server-start.sh config/server.properties
+
+You should see Kafka startup logs.
+
+Keep this terminal open.
+
+7. Open a SECOND Codespace terminal
+
+This is where you run your Kafka commands.
+
+Your first terminal:
+
+Terminal 1
+    ↓
+Kafka Broker
+    ↓
+KEEP RUNNING
+
+Terminal 2:
+
+Topic / Producer / Admin commands
+
+Run:
+
+cd /opt/kafka
+
+assuming /opt/kafka was your discovered Kafka directory.
+
+8. Create Q2 topic
+
+Terminal 2:
+
+bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --create \
+  --topic server_metrics \
+  --partitions 1 \
+  --replication-factor 1
+
+Then verify:
+
+bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --list
+
+You should get:
+
+server_metrics
+
+Describe it:
+
+bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --describe \
+  --topic server_metrics
+9. Start the producer
+
+You can use Terminal 2:
+
+bin/kafka-console-producer.sh \
+  --bootstrap-server localhost:9092 \
+  --topic server_metrics
+
+Now enter:
+
+{"server_id":"server01","cpu_usage":82,"memory_usage":65}
+
+Then:
+
+{"server_id":"server02","cpu_usage":45,"memory_usage":55}
+
+etc.
+
+10. Open a THIRD Codespace terminal
+
+Now run the consumer:
+
+cd /opt/kafka
+
+Then:
+
+bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 \
+  --topic server_metrics \
+  --from-beginning
+-----------------------------------------------------------------------------------------------------------------
+
+
+QUES3
+
+
+from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    "server_metrics",
+    bootstrap_servers="localhost:9092",
+    auto_offset_reset="earliest",
+    value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+)
+
+for message in consumer:
+    data = message.value
+
+    server_id = data["server_id"]
+    cpu = data["cpu_usage"]
+    memory = data["memory_usage"]
+
+    print(f"{server_id} | CPU: {cpu}% | Memory: {memory}%")
+
+    if cpu > 80:
+        print(f"ALERT: High CPU detected on {server_id}")
+    else:
+        print(f"{server_id}: CPU normal")
+
+-------------------------------------------------------------------------------
+
+ques 4
+STEP 2 — Check Python
+python3 --version
+
+Also:
+
+pip3 --version
+
+If python3 works, continue.
+
+STEP 3 — Create a virtual environment
+
+This is the part you remember.
+
+python3 -m venv airflow-venv
+
+Activate it:
+
+source airflow-venv/bin/activate
+
+Your terminal should now look something like:
+
+(airflow-venv) vscode ➜ /workspaces/exam-repo $
+
+Verify:
+
+which python
+
+It should point somewhere inside:
+
+.../airflow-venv/bin/python
+STEP 4 — Upgrade pip
+pip install --upgrade pip
+STEP 5 — Install Airflow
+
+For an exam, if the repo/teacher gives a specific Airflow version, use that version.
+
+If no version is specified:
+
+pip install apache-airflow
+
+Check:
+
+airflow version
+
+You should get something like:
+
+3.x.x
+STEP 6 — Initialize Airflow
+
+This is where your previous Ubuntu setup comes in.
+
+First:
+
+airflow db migrate
+
+Depending on the Airflow version, this initializes/prepares the metadata database.
+
+Then check:
+
+airflow info
+STEP 7 — Create the DAG folder
+
+Your Airflow environment needs a DAG directory.
+
+You can check:
+
+airflow config get-value core dags_folder
+
+It may return something like:
+
+/home/vscode/airflow/dags
+
+or:
+
+/workspaces/exam-repo/dags
+
+Use whatever path it gives you.
+
+If it gives:
+
+/home/vscode/airflow/dags
+
+then:
+
+mkdir -p ~/airflow/dags
+
+If your exam repo already has:
+
+dags/
+
+you can use that instead.
+
+For your exam
+
+If the repo contains a dags directory:
+
+ls
+
+and you see:
+
+dags
+
+then put your DAG there:
+
+exam-repo/
+└── dags/
+    └── aiops_workflow.py
+
+That is usually much better because the file can be committed to GitHub.
+
+STEP 8 — The "standalone" thing you remember
+
+Yes. This is probably what you're remembering:
+
+airflow standalone
+
+This is extremely useful for an exam/practice environment.
+
+Run:
+
+airflow standalone
+
+It will:
+
+initialize Airflow
+prepare the database
+create an admin user
+start the Airflow webserver
+start the scheduler
+print login information
+
+You may see something like:
+
+Admin user: admin
+Password: xxxxxxxxx
+
+SAVE/COPY THAT PASSWORD.
+
+And you'll see something like:
+
+http://127.0.0.1:8080
+STEP 9 — Codespaces difference
+
+This is important.
+
+In your Ubuntu/WSL practice you probably opened:
+
+http://localhost:8080
+
+In GitHub Codespaces, don't assume you can simply use your computer's localhost.
+
+Codespaces normally exposes the port.
+
+When Airflow starts on:
+
+localhost:8080
+
+look at the PORTS tab in VS Code/Codespaces.
+
+You should see:
+
+8080
+
+Then Codespaces can provide an Open in Browser / Forwarded Address option.
+
+So:
+
+Airflow
+   ↓
+localhost:8080
+   ↓
+Codespaces forwarded port
+   ↓
+Browser
+STEP 10 — If you forget Airflow username/password
+
+If you used:
+
+airflow standalone
+
+the terminal where it started prints the credentials.
+
+If you need to inspect Airflow users:
+
+airflow users list
+
+You'll see something similar to:
+
+username
+--------
+admin
+
+You can also create/reset an admin user depending on your Airflow version.
+
+For newer Airflow versions, check:
+
+airflow users --help
+
+For example, user creation commonly looks like:
+
+airflow users create \
+    --username admin \
+    --firstname Admin \
+    --lastname User \
+    --role Admin \
+    --email admin@example.com \
+    --password admin
+
+But don't blindly create another user if airflow standalone already created one.
+
+STEP 11 — Create your DAG
+
+Now open another terminal if airflow standalone is occupying the first one.
+
+Terminal 2:
+
+Make sure your venv is activated:
+
+source airflow-venv/bin/activate
+
+Check:
+
+airflow version
+
+Go to your repo:
+
+cd /workspaces/exam-repo
+
+Check:
+
+ls
+
+If there's a dags folder:
+
+cd dags
+
+Create:
+
+touch aiops_workflow.py
+
+Open:
+
+code aiops_workflow.py
+STEP 12 — Put this code in aiops_workflow.py
+
+For this question, keep it simple.
+
+from datetime import datetime
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
+
+def collect_metrics():
+    cpu = 87
+    memory = 65
+    response_time = 420
+
+    print("Metrics collected:")
+    print(f"CPU Usage: {cpu}%")
+    print(f"Memory Usage: {memory}%")
+    print(f"Response Time: {response_time}ms")
+
+
+def process_metrics():
+    cpu = 87
+    memory = 65
+    response_time = 420
+
+    print("Processing metrics...")
+    print(f"CPU: {cpu}%")
+    print(f"Memory: {memory}%")
+    print(f"Response Time: {response_time}ms")
+
+
+def detect_anomaly():
+    cpu = 87
+
+    if cpu > 80:
+        print("Anomaly detected: High CPU usage")
+    else:
+        print("No anomaly detected")
+
+
+def generate_report():
+    print("===== AIOps Report =====")
+    print("Metrics collected successfully")
+    print("Metrics processed successfully")
+    print("Anomaly detection completed")
+    print("========================")
+
+
+with DAG(
+    dag_id="aiops_workflow",
+    start_date=datetime(2026, 1, 1),
+    schedule=None,
+    catchup=False,
+) as dag:
+
+    collect_metrics_task = PythonOperator(
+        task_id="collect_metrics",
+        python_callable=collect_metrics,
+    )
+
+    process_metrics_task = PythonOperator(
+        task_id="process_metrics",
+        python_callable=process_metrics,
+    )
+
+    detect_anomaly_task = PythonOperator(
+        task_id="detect_anomaly",
+        python_callable=detect_anomaly,
+    )
+
+    generate_report_task = PythonOperator(
+        task_id="generate_report",
+        python_callable=generate_report,
+    )
+
+    collect_metrics_task >> process_metrics_task >> detect_anomaly_task >> generate_report_task
+STEP 13 — Check that the Python file has no syntax errors
+
+From the repo:
+
+python -m py_compile dags/aiops_workflow.py
+
+If there is no output, that's good.
+
+STEP 14 — Check whether Airflow detects your DAG
+
+Run:
+
+airflow dags list
+
+Look for:
+
+aiops_workflow
+
+You can also:
+
+airflow dags list | grep aiops
+
+Expected:
+
+aiops_workflow
+STEP 15 — If DAG doesn't appear
+
+This is a very common exam problem.
+
+First check the DAG folder:
+
+airflow config get-value core dags_folder
+
+Then check whether your file is actually there.
+
+For example:
+
+ls dags
+
+You should see:
+
+aiops_workflow.py
+
+Then check:
+
+airflow dags list-import-errors
+
+If there is an error, it will tell you what's wrong.
+
+STEP 16 — Test individual tasks
+
+You don't necessarily need to run the entire web UI to prove the DAG works.
+
+You can test:
+
+airflow tasks test aiops_workflow collect_metrics 2026-09-20
+
+Then:
+
+airflow tasks test aiops_workflow process_metrics 2026-09-20
+
+Then:
+
+airflow tasks test aiops_workflow detect_anomaly 2026-09-20
+
+Then:
+
+airflow tasks test aiops_workflow generate_report 2026-09-20
+
+For detect_anomaly, you should see:
+
+Anomaly detected: High CPU usage
+
+For the report:
+
+===== AIOps Report =====
+Metrics collected successfully
+Metrics processed successfully
+Anomaly detection completed
+========================
+STEP 17 — Run the entire DAG
+
+You can trigger it:
+
+airflow dags trigger aiops_workflow
+
+Then check:
+
+airflow dags list-runs -d aiops_workflow
+
+Depending on your Airflow version, you can also use the UI.
+
+STEP 18 — Open Airflow UI
+
+If airflow standalone is running, Airflow normally listens on:
+
+8080
+
+In Codespaces:
+
+PORTS → 8080 → Open in Browser
+
+Then login using the credentials generated by:
+
+airflow standalone
+
+You should see:
+
+aiops_workflow
+
+Click it.
+
+Then trigger it.
+
+You should see:
+
+collect_metrics
+       ↓
+process_metrics
+       ↓
+detect_anomaly
+       ↓
+generate_report
+STEP 19 — Verify the DAG order
+
+The code:
+
+collect_metrics_task >> process_metrics_task >> detect_anomaly_task >> generate_report_task
+
+is exactly equivalent to:
+
+collect_metrics
+       ↓
+process_metrics
+       ↓
+detect_anomaly
+       ↓
+generate_report
+
+This is one of the things the examiner is specifically testing.
+
+STEP 20 — GitHub submission
+
+Once everything works:
+
+Go back to the repository root:
+
+cd /workspaces/exam-repo
+
+Check:
+
+git status
+
+You should see:
+
+dags/aiops_workflow.py
+
+Add:
+
+git add dags/aiops_workflow.py
+
+Commit:
+
+git commit -m "Add AIOps Airflow workflow"
+
+Push:
+
+git push
+
+Verify:
+
+git status
+----------------------------------------------------------------------------------
+
