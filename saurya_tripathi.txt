@@ -1,0 +1,587 @@
+AIOPS MID-SEM OPEN BOOK CHEAT SHEET
+===================================
+
+IMPORTANT:
+These are the 5 sample questions provided by the teacher.
+The code below is intentionally simple and directly follows the requirements.
+For the actual exam, use the file names, folder names, topic names, column names,
+and values given in the exam README/question.
+
+EXAM CHECKPOINT WORKFLOW
+------------------------
+After completing EACH checkpoint:
+
+git status
+git add .
+git commit -m "Complete checkpoint 1"
+git push
+
+For the next checkpoint, change the message:
+
+git add .
+git commit -m "Complete checkpoint 2"
+git push
+
+If GitHub Actions is used for checking:
+
+gh run list
+gh run watch
+
+
+============================================================
+QUESTION 1 - AIOps Log Anomaly Detection
+============================================================
+
+QUESTION REQUIREMENTS
+---------------------
+Create or read a sample dataset containing:
+1. Timestamp
+2. CPU Usage
+3. Memory Usage
+4. Response Time
+
+Then:
+1. Calculate basic statistics.
+2. Detect anomalous values using a simple threshold-based approach.
+3. Print anomalous records.
+4. Display a graph showing metric values and anomalies.
+
+Expected sample pattern:
+Total records: 20
+Anomalies detected: 3
+
+Sample anomaly format:
+10:05  95%  ANOMALY
+10:12  97%  ANOMALY
+10:18  92%  ANOMALY
+
+
+MINIMAL CODE - IF DATA IS ALREADY IN A CSV FILE
+------------------------------------------------
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("data/server_logs.csv")
+
+print("===== Basic Statistics =====")
+print(df[["CPU", "Memory", "Response_Time"]].describe())
+
+threshold = 80
+
+df["Status"] = "NORMAL"
+df.loc[df["CPU"] > threshold, "Status"] = "ANOMALY"
+
+anomalies = df[df["Status"] == "ANOMALY"]
+
+print("\n===== Anomalies =====")
+print(anomalies[["Timestamp", "CPU", "Status"]])
+
+print("\nTotal records:", len(df))
+print("Anomalies detected:", len(anomalies))
+
+plt.plot(df["Timestamp"], df["CPU"], marker="o", label="CPU")
+plt.scatter(
+    anomalies["Timestamp"],
+    anomalies["CPU"],
+    marker="x",
+    s=100,
+    label="Anomaly"
+)
+
+plt.axhline(threshold, linestyle="--", label="Threshold")
+plt.xlabel("Timestamp")
+plt.ylabel("CPU Usage (%)")
+plt.title("AIOps CPU Anomaly Detection")
+plt.xticks(rotation=45)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+IF THE QUESTION DOES NOT GIVE A CSV
+------------------------------------
+Use a small DataFrame directly:
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = {
+    "Timestamp": [
+        "10:01","10:02","10:03","10:04","10:05",
+        "10:06","10:07","10:08","10:09","10:10",
+        "10:11","10:12","10:13","10:14","10:15",
+        "10:16","10:17","10:18","10:19","10:20"
+    ],
+    "CPU": [
+        45,50,48,52,95,55,60,58,62,65,
+        63,97,60,55,58,61,59,92,57,54
+    ],
+    "Memory": [
+        55,60,58,62,65,64,61,63,66,68,
+        65,67,70,69,65,66,64,68,62,60
+    ],
+    "Response_Time": [
+        200,210,220,230,240,250,260,270,280,290,
+        300,310,320,330,340,350,360,370,380,390
+    ]
+}
+
+df = pd.DataFrame(data)
+
+threshold = 80
+
+df["Status"] = "NORMAL"
+df.loc[df["CPU"] > threshold, "Status"] = "ANOMALY"
+
+anomalies = df[df["Status"] == "ANOMALY"]
+
+print("Total records:", len(df))
+print("Anomalies detected:", len(anomalies))
+print(anomalies[["Timestamp", "CPU", "Status"]])
+
+plt.plot(df["Timestamp"], df["CPU"], marker="o")
+plt.scatter(anomalies["Timestamp"], anomalies["CPU"], marker="x")
+plt.axhline(threshold, linestyle="--")
+plt.xlabel("Timestamp")
+plt.ylabel("CPU Usage (%)")
+plt.title("CPU Anomaly Detection")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+REQUIRED PYTHON PACKAGES
+------------------------
+pip install pandas matplotlib
+
+
+============================================================
+QUESTION 2 - Kafka Topic and Producer
+============================================================
+
+QUESTION REQUIREMENTS
+---------------------
+1. Start the Kafka server/cluster.
+2. Create a topic named:
+   server_metrics
+3. Configure a Kafka producer.
+4. Send at least 10 server metric messages.
+5. Each message must contain:
+   - server_id
+   - cpu_usage
+   - memory_usage
+6. Verify that messages were successfully published.
+
+Example message:
+{
+  "server_id": "server01",
+  "cpu_usage": 82,
+  "memory_usage": 65
+}
+
+
+CREATE TOPIC
+------------
+Use the Kafka command provided by the exam repository/setup.
+For a standard local Kafka setup:
+
+bin/kafka-topics.sh --create --topic server_metrics --bootstrap-server localhost:9092
+
+
+MINIMAL PYTHON PRODUCER
+-----------------------
+
+from kafka import KafkaProducer
+import json
+
+producer = KafkaProducer(
+    bootstrap_servers="localhost:9092",
+    value_serializer=lambda x: json.dumps(x).encode("utf-8")
+)
+
+messages = [
+    {"server_id": "server01", "cpu_usage": 82, "memory_usage": 65},
+    {"server_id": "server02", "cpu_usage": 45, "memory_usage": 55},
+    {"server_id": "server03", "cpu_usage": 91, "memory_usage": 70},
+    {"server_id": "server04", "cpu_usage": 60, "memory_usage": 62},
+    {"server_id": "server05", "cpu_usage": 75, "memory_usage": 68},
+    {"server_id": "server06", "cpu_usage": 88, "memory_usage": 80},
+    {"server_id": "server07", "cpu_usage": 50, "memory_usage": 45},
+    {"server_id": "server08", "cpu_usage": 95, "memory_usage": 85},
+    {"server_id": "server09", "cpu_usage": 65, "memory_usage": 60},
+    {"server_id": "server10", "cpu_usage": 72, "memory_usage": 58}
+]
+
+for message in messages:
+    producer.send("server_metrics", message)
+    print("Sent:", message)
+
+producer.flush()
+producer.close()
+
+print("All messages sent")
+
+
+VERIFY THE MESSAGES
+-------------------
+Use the Kafka console consumer provided by the setup:
+
+bin/kafka-console-consumer.sh \
+  --topic server_metrics \
+  --bootstrap-server localhost:9092 \
+  --from-beginning
+
+You should see the 10 JSON messages.
+
+REQUIRED PYTHON PACKAGE
+-----------------------
+pip install kafka-python
+
+
+============================================================
+QUESTION 3 - Python Kafka Consumer
+============================================================
+
+QUESTION REQUIREMENTS
+---------------------
+Write a Python Kafka consumer that:
+1. Connects to the Kafka broker.
+2. Subscribes to the server_metrics topic.
+3. Continuously receives messages.
+4. Displays the received server metrics.
+5. Detects whether CPU usage is greater than 80%.
+6. Prints:
+   ALERT: High CPU detected on server01
+
+Example:
+Received:
+Server: server01
+CPU: 85%
+Memory: 62%
+ALERT: High CPU detected on server01
+
+
+MINIMAL CODE
+------------
+
+from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    "server_metrics",
+    bootstrap_servers="localhost:9092",
+    value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+)
+
+for message in consumer:
+    data = message.value
+
+    server_id = data["server_id"]
+    cpu = data["cpu_usage"]
+    memory = data["memory_usage"]
+
+    print("Received:")
+    print("Server:", server_id)
+    print("CPU:", str(cpu) + "%")
+    print("Memory:", str(memory) + "%")
+
+    if cpu > 80:
+        print("ALERT: High CPU detected on", server_id)
+    else:
+        print("Normal")
+
+    print()
+
+
+============================================================
+QUESTION 4 - Build an AIOps Workflow Using Airflow
+============================================================
+
+QUESTION REQUIREMENTS
+---------------------
+Create an Apache Airflow DAG with these tasks in this exact order:
+
+collect_metrics
+        |
+        v
+process_metrics
+        |
+        v
+detect_anomaly
+        |
+        v
+generate_report
+
+Task 1 - collect_metrics
+Generate/sample:
+CPU = 87
+Memory = 65
+Response Time = 420ms
+
+Task 2 - process_metrics
+Process the collected metrics and print them.
+
+Task 3 - detect_anomaly
+Check:
+CPU > 80
+
+If yes:
+Anomaly detected: High CPU usage
+
+Otherwise:
+No anomaly detected
+
+Task 4 - generate_report
+Print:
+
+===== AIOps Report =====
+Metrics collected successfully
+Metrics processed successfully
+Anomaly detection completed
+========================
+
+DAG must:
+- Use PythonOperator.
+- Define all four tasks.
+- Define correct dependencies.
+- Run in this order:
+  collect_metrics >> process_metrics >> detect_anomaly >> generate_report
+
+
+MINIMAL CODE
+------------
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+
+
+def collect_metrics():
+    print("CPU = 87")
+    print("Memory = 65")
+    print("Response Time = 420ms")
+
+
+def process_metrics():
+    print("Metrics processed successfully")
+
+
+def detect_anomaly():
+    cpu = 87
+
+    if cpu > 80:
+        print("Anomaly detected: High CPU usage")
+    else:
+        print("No anomaly detected")
+
+
+def generate_report():
+    print("===== AIOps Report =====")
+    print("Metrics collected successfully")
+    print("Metrics processed successfully")
+    print("Anomaly detection completed")
+    print("========================")
+
+
+with DAG(
+    "aiops_workflow",
+    start_date=datetime(2026, 1, 1),
+    schedule=None,
+    catchup=False
+) as dag:
+
+    t1 = PythonOperator(
+        task_id="collect_metrics",
+        python_callable=collect_metrics
+    )
+
+    t2 = PythonOperator(
+        task_id="process_metrics",
+        python_callable=process_metrics
+    )
+
+    t3 = PythonOperator(
+        task_id="detect_anomaly",
+        python_callable=detect_anomaly
+    )
+
+    t4 = PythonOperator(
+        task_id="generate_report",
+        python_callable=generate_report
+    )
+
+    t1 >> t2 >> t3 >> t4
+
+
+IMPORTANT AIRFLOW LINE
+----------------------
+t1 >> t2 >> t3 >> t4
+
+This creates the exact required dependency/order.
+
+
+============================================================
+QUESTION 5 - Integrated AIOps Challenge
+============================================================
+
+QUESTION REQUIREMENTS
+---------------------
+Modify the Kafka consumer so that it:
+1. Receives server metrics from Kafka.
+2. Checks CPU usage.
+3. Detects an anomaly when CPU > 80%.
+4. Prints an alert.
+5. Maintains a count of detected anomalies.
+
+Example:
+
+Message received: server01 | CPU: 85%
+ALERT: High CPU detected
+
+Message received: server02 | CPU: 45%
+Normal
+
+Message received: server03 | CPU: 91%
+ALERT: High CPU detected
+
+Total anomalies detected: 2
+
+
+MINIMAL CODE
+------------
+
+from kafka import KafkaConsumer
+import json
+
+consumer = KafkaConsumer(
+    "server_metrics",
+    bootstrap_servers="localhost:9092",
+    value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+)
+
+anomaly_count = 0
+
+for message in consumer:
+    data = message.value
+
+    server = data["server_id"]
+    cpu = data["cpu_usage"]
+
+    print("Message received:", server, "| CPU:", str(cpu) + "%")
+
+    if cpu > 80:
+        print("ALERT: High CPU detected")
+        anomaly_count += 1
+    else:
+        print("Normal")
+
+    print("Total anomalies detected:", anomaly_count)
+
+
+============================================================
+QUICK COPY-PASTE REFERENCE
+============================================================
+
+QUESTION 1
+----------
+CSV:
+df = pd.read_csv("data/server_logs.csv")
+
+Anomaly:
+df["Status"] = "NORMAL"
+df.loc[df["CPU"] > 80, "Status"] = "ANOMALY"
+
+anomalies:
+anomalies = df[df["Status"] == "ANOMALY"]
+
+
+QUESTION 2
+----------
+Producer:
+producer = KafkaProducer(
+    bootstrap_servers="localhost:9092",
+    value_serializer=lambda x: json.dumps(x).encode("utf-8")
+)
+
+Send:
+producer.send("server_metrics", message)
+
+Finish:
+producer.flush()
+
+
+QUESTION 3
+----------
+Consumer:
+consumer = KafkaConsumer(
+    "server_metrics",
+    bootstrap_servers="localhost:9092",
+    value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+)
+
+Read:
+for message in consumer:
+    data = message.value
+
+
+QUESTION 4
+----------
+Airflow:
+PythonOperator(
+    task_id="collect_metrics",
+    python_callable=collect_metrics
+)
+
+Order:
+t1 >> t2 >> t3 >> t4
+
+
+QUESTION 5
+----------
+Anomaly count:
+if cpu > 80:
+    print("ALERT: High CPU detected")
+    anomaly_count += 1
+
+
+============================================================
+CHECKPOINT SUBMISSION
+============================================================
+
+After EACH checkpoint in the exam:
+
+git status
+git add .
+git commit -m "Complete checkpoint 1"
+git push
+
+Then move to the next checkpoint.
+
+If a checkpoint fails GitHub Actions:
+1. Read the failed test/log.
+2. Fix only the required issue.
+3. Commit again.
+4. Push again.
+
+Useful checks:
+
+gh run list
+gh run watch
+gh run view --log
+
+
+============================================================
+IMPORTANT NOTES FOR THE ACTUAL EXAM
+============================================================
+
+1. Read the README first.
+2. Use the exact file names and paths given by the repository.
+3. Use the exact Kafka topic name if specified.
+4. Use the exact Airflow task IDs if specified.
+5. Do not change .github/workflows unless the checkpoint asks you to.
+6. Do not add unnecessary libraries or complicated architecture.
+7. Complete one checkpoint, test it, commit it, push it.
+8. Then start the next checkpoint.
+9. If the repository already provides a CSV/data file, use it instead of creating new sample data unless the question says otherwise.
+10. Kafka startup commands can differ depending on the exam repository. Follow the README/repository setup for starting the Kafka server/cluster.
