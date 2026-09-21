@@ -936,3 +936,40 @@ Verify:
 git status
 ----------------------------------------------------------------------------------
 
+
+
+# 1. Clone YOUR fork
+git clone https://github.com/YOUR_USERNAME/REPO.git
+cd REPO
+
+# 2. Create a new branch
+git switch -c my-feature
+
+# 3. Make changes in VS Code
+
+# 4. Stage + commit
+git add .
+git commit -m "Add my feature"
+
+# 5. Push branch to YOUR fork
+git push -u origin my-feature
+
+
+
+
+
+
+
+
+Then on GitHub:
+
+Open your fork
+You'll see "Compare & pull request" → click it
+Make sure:
+base repository = original/real repo
+base branch = main (or whatever branch the project uses)
+head repository = your fork
+compare branch = my-feature
+Add a title and description.
+Click Create pull request
+
